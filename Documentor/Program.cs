@@ -12,18 +12,18 @@ namespace Documentor
         static void Main(string[] args)
         {
             var directory = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-            var references = Directory.EnumerateFiles(directory, "*.xml").Select(path => XElement.Load(path)).ToArray();
+            var references = Directory.EnumerateFiles(directory, "*.xml").Select(XElement.Load).ToArray();
             var documentation = args.Select(path => (path, root: XElement.Load(path))).ToArray();
             var members = documentation.Select(pair => pair.root).Concat(references)
                 .SelectMany(root => root.DescendantsAndSelf())
-                .Where(node => node.Name == "member")
+                .Where(node => node?.Name == "member")
                 .ToDictionary(node => node.Attribute("name").Value, child => child);
             foreach (var (path, root) in documentation) Process(path, root, members);
         }
 
         static void Process(string path, XElement root, Dictionary<string, XElement> members)
         {
-            foreach (var node in root.DescendantsAndSelf())
+            foreach (var node in root.DescendantsAndSelf().ToArray())
             {
                 if (node.Name == "inheritdoc" && node.Attribute("cref")?.Value is string cref && members.TryGetValue(cref, out var reference))
                 {
