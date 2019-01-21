@@ -1,23 +1,29 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace Documentor
 {
-    class Program
+    sealed class Program
     {
-        static void Main(string[] args) => Parallel.ForEach(args, Process);
-
-        static void Process(string path)
+        static void Main(string[] args)
         {
-            var root = XElement.Load(path);
-            var descendants = root.DescendantsAndSelf().ToArray();
-            var members = descendants
+            var directory = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+            var references = Directory.EnumerateFiles(directory, "*.xml").Select(path => XElement.Load(path)).ToArray();
+            var documentation = args.Select(path => (path, root: XElement.Load(path))).ToArray();
+            var members = documentation.Select(pair => pair.root).Concat(references)
+                .SelectMany(root => root.DescendantsAndSelf())
                 .Where(node => node.Name == "member")
                 .ToDictionary(node => node.Attribute("name").Value, child => child);
+            foreach (var (path, root) in documentation) Process(path, root, members);
+        }
 
-            foreach (var node in descendants)
+        static void Process(string path, XElement root, Dictionary<string, XElement> members)
+        {
+            foreach (var node in root.DescendantsAndSelf())
             {
                 if (node.Name == "inheritdoc" && node.Attribute("cref")?.Value is string cref && members.TryGetValue(cref, out var reference))
                 {
