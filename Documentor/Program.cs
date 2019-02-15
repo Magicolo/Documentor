@@ -11,12 +11,10 @@ namespace Documentor
     {
         static void Main(string[] args)
         {
-            var directory = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-            var references = Directory.EnumerateFiles(directory, "*.xml").Select(Load).ToArray();
-            var documentation = args.Select(path => (path, root: Load(path))).ToArray();
-            var members = documentation.Select(pair => pair.root).Concat(references)
-                .Where(root => root != null)
-                .SelectMany(root => root.DescendantsAndSelf())
+            var references = Load(Path.GetDirectoryName(typeof(Program).Assembly.Location));
+            var documentation = args.SelectMany(Load).ToArray();
+            var members = documentation.Concat(references)
+                .SelectMany(pair => pair.root.DescendantsAndSelf())
                 .Where(node => node?.Name == "member")
                 .Select(node => (node, name: node?.Attribute("name")?.Value))
                 .Where(pair => !string.IsNullOrWhiteSpace(pair.name))
@@ -24,10 +22,18 @@ namespace Documentor
             foreach (var (path, root) in documentation) Process(path, root, members);
         }
 
-        static XElement Load(string path)
+        static (string path, XElement root)[] Load(string path)
         {
-            try { return XElement.Load(path); }
-            catch { return null; }
+            try
+            {
+                if (Directory.Exists(path))
+                    return Directory.EnumerateFiles(path, "*.xml", SearchOption.TopDirectoryOnly).SelectMany(Load).ToArray();
+                else if (File.Exists(path) && XElement.Load(path) is XElement element)
+                    return new[] { (path, element) };
+            }
+            catch { }
+
+            return Array.Empty<(string, XElement)>();
         }
 
         static void Process(string path, XElement root, Dictionary<string, XElement> members)
