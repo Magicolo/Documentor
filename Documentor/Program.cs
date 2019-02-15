@@ -12,24 +12,22 @@ namespace Documentor
         static void Main(string[] args)
         {
             var directory = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-            var references = Directory.EnumerateFiles(directory, "*.xml").Select(Load).Where(element => element != null).ToArray();
-            var documentation = args.Select(path => (path, root: Load(path))).Where(pair => pair.root != null).ToArray();
+            var references = Directory.EnumerateFiles(directory, "*.xml").Select(Load).ToArray();
+            var documentation = args.Select(path => (path, root: Load(path))).ToArray();
             var members = documentation.Select(pair => pair.root).Concat(references)
+                .Where(root => root != null)
                 .SelectMany(root => root.DescendantsAndSelf())
                 .Where(node => node?.Name == "member")
-                .ToDictionary(node => node.Attribute("name").Value, child => child);
+                .Select(node => (node, name: node?.Attribute("name")?.Value))
+                .Where(pair => !string.IsNullOrWhiteSpace(pair.name))
+                .ToDictionary(pair => pair.name, pair => pair.node);
             foreach (var (path, root) in documentation) Process(path, root, members);
         }
 
         static XElement Load(string path)
         {
-            if (File.Exists(path))
-            {
-                try { return XElement.Load(path); }
-                catch { }
-            }
-
-            return default;
+            try { return XElement.Load(path); }
+            catch { return null; }
         }
 
         static void Process(string path, XElement root, Dictionary<string, XElement> members)

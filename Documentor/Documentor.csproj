@@ -6,4 +6,7 @@
     <LangVersion>7.3</LangVersion>
   </PropertyGroup>
 
+  <Target Name="Copy" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="xcopy /y /q &quot;$(PublishDir)*&quot; &quot;$(ProjectDir)..\Release\&quot;" />
+  </Target>
 </Project>
