@@ -10,7 +10,9 @@
 			"request": "launch",
 			"preLaunchTask": "build",
 			"program": "${workspaceFolder}/Documentor/bin/Debug/netcoreapp2.1/Documentor.dll",
-			"args": ["${workspaceFolder}/Entia.xml"],
+			"args": [
+				"${workspaceFolder}/../Entia/Release"
+			],
 			"cwd": "${workspaceFolder}/Documentor",
 			"console": "internalConsole",
 			"stopAtEntry": false,

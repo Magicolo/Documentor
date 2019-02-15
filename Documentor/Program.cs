@@ -19,17 +19,23 @@ namespace Documentor
                 .Select(node => (node, name: node?.Attribute("name")?.Value))
                 .Where(pair => !string.IsNullOrWhiteSpace(pair.name))
                 .ToDictionary(pair => pair.name, pair => pair.node);
-            foreach (var (path, root) in documentation) Process(path, root, members);
+            foreach (var (path, root) in documentation)
+            {
+                Console.WriteLine($"Processing '{path}'.");
+                Process(path, root, members);
+            }
         }
 
         static (string path, XElement root)[] Load(string path)
         {
             try
             {
+                path = Path.GetFullPath(path.Trim('"'));
+                if (File.Exists(path) && XElement.Load(path) is XElement element)
+                    return new[] { (path, element) };
+
                 if (Directory.Exists(path))
                     return Directory.EnumerateFiles(path, "*.xml", SearchOption.TopDirectoryOnly).SelectMany(Load).ToArray();
-                else if (File.Exists(path) && XElement.Load(path) is XElement element)
-                    return new[] { (path, element) };
             }
             catch { }
 
